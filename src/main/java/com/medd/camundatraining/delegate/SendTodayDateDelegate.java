@@ -29,11 +29,17 @@ public class SendTodayDateDelegate implements JavaDelegate {
      */
     @Override
     public void execute(DelegateExecution execution) throws Exception {
-        String today = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+        LocalDate now = LocalDate.now();
+        String today = now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
         
-        // Set a process variable containing today's date
+        // Resolve month name, capitalized (e.g., "June", "July")
+        String rawMonth = now.getMonth().name();
+        String currentMonth = rawMonth.substring(0, 1).toUpperCase() + rawMonth.substring(1).toLowerCase();
+        
+        // Set process variables
         execution.setVariable("todayDate", today);
+        execution.setVariable("currentMonth", currentMonth);
         
-        log.info("📬 SendTodayDateDelegate: Set process variable 'todayDate' to: {}", today);
+        log.info("📬 SendTodayDateDelegate: Set variables 'todayDate' to '{}' and 'currentMonth' to '{}'", today, currentMonth);
     }
 }
