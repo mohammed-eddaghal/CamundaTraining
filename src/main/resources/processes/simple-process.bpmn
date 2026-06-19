@@ -4,7 +4,7 @@
     <bpmn:startEvent id="StartEvent_1" name="Start">
       <bpmn:outgoing>Flow_1</bpmn:outgoing>
     </bpmn:startEvent>
-    <bpmn:serviceTask id="ServiceTask_1" name="Get Today's Date" camunda:class="com.medd.camundatraining.delegate.SendTodayDateDelegate">
+    <bpmn:serviceTask id="ServiceTask_1" name="Get Today's Date" camunda:delegateExpression="${sendTodayDateDelegate}">
       <bpmn:incoming>Flow_1</bpmn:incoming>
       <bpmn:outgoing>Flow_service_to_user</bpmn:outgoing>
     </bpmn:serviceTask>
