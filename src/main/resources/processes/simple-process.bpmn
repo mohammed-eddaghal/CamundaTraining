@@ -10,6 +10,15 @@
     </bpmn:serviceTask>
     <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_1" targetRef="ServiceTask_1" />
     <bpmn:userTask id="UserTask_1" name="Approve Request" camunda:assignee="demo">
+      <bpmn:extensionElements>
+        <camunda:formData>
+          <camunda:formField id="todayDate" label="Date of Today" type="string">
+            <camunda:validation>
+              <camunda:constraint name="readonly" />
+            </camunda:validation>
+          </camunda:formField>
+        </camunda:formData>
+      </bpmn:extensionElements>
       <bpmn:incoming>Flow_service_to_user</bpmn:incoming>
       <bpmn:outgoing>Flow_2</bpmn:outgoing>
     </bpmn:userTask>
