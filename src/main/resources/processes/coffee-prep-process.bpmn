@@ -14,33 +14,42 @@
       <bpmn:outgoing>Flow_add_sugar</bpmn:outgoing>
     </bpmn:inclusiveGateway>
     
-    <!-- Outgoing flows with conditions -->
+    <!-- Outgoing flows with conditions including completion memory using execution.getVariable -->
     <bpmn:sequenceFlow id="Flow_pure_coffee" name="Pure Coffee" sourceRef="Gateway_CoffeeOptions" targetRef="UserTask_PureCoffee">
-      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${pureCoffee == true}</bpmn:conditionExpression>
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${pureCoffee == true and execution.getVariable('pureCoffeeDone') != true}</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
     
     <bpmn:sequenceFlow id="Flow_add_milk" name="With Milk" sourceRef="Gateway_CoffeeOptions" targetRef="UserTask_AddMilk">
-      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${withMilk == true}</bpmn:conditionExpression>
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${withMilk == true and execution.getVariable('milkDone') != true}</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
     
     <bpmn:sequenceFlow id="Flow_add_sugar" name="More Sugar" sourceRef="Gateway_CoffeeOptions" targetRef="UserTask_AddSugar">
-      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${moreSugar == true}</bpmn:conditionExpression>
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${moreSugar == true and execution.getVariable('sugarDone') != true}</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
     
-    <!-- Coffee Action Tasks -->
+    <!-- Coffee Action Tasks with Task Listeners on complete event pointing to coffeePrepTaskListener -->
     <bpmn:userTask id="UserTask_PureCoffee" name="Pour Pure Coffee" camunda:assignee="admin">
+      <bpmn:extensionElements>
+        <camunda:taskListener delegateExpression="${coffeePrepTaskListener}" event="complete" />
+      </bpmn:extensionElements>
       <bpmn:incoming>Flow_pure_coffee</bpmn:incoming>
       <bpmn:outgoing>Flow_pure_done</bpmn:outgoing>
     </bpmn:userTask>
     <bpmn:sequenceFlow id="Flow_pure_done" sourceRef="UserTask_PureCoffee" targetRef="Gateway_MergeCoffee" />
     
     <bpmn:userTask id="UserTask_AddMilk" name="Add Milk to Coffee" camunda:assignee="admin">
+      <bpmn:extensionElements>
+        <camunda:taskListener delegateExpression="${coffeePrepTaskListener}" event="complete" />
+      </bpmn:extensionElements>
       <bpmn:incoming>Flow_add_milk</bpmn:incoming>
       <bpmn:outgoing>Flow_milk_done</bpmn:outgoing>
     </bpmn:userTask>
     <bpmn:sequenceFlow id="Flow_milk_done" sourceRef="UserTask_AddMilk" targetRef="Gateway_MergeCoffee" />
     
     <bpmn:userTask id="UserTask_AddSugar" name="Add Extra Sugar" camunda:assignee="admin">
+      <bpmn:extensionElements>
+        <camunda:taskListener delegateExpression="${coffeePrepTaskListener}" event="complete" />
+      </bpmn:extensionElements>
       <bpmn:incoming>Flow_add_sugar</bpmn:incoming>
       <bpmn:outgoing>Flow_sugar_done</bpmn:outgoing>
     </bpmn:userTask>
