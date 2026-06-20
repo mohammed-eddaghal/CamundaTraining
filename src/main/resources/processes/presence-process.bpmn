@@ -1,0 +1,282 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:camunda="http://camunda.org/schema/1.0/bpmn" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" id="Definitions_Presence" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.0.0">
+  <bpmn:process id="Process_Presence" name="Presence Verification Process" isExecutable="true" camunda:historyTimeToLive="180">
+    
+    <!-- Timer Start Event that triggers after 30 seconds -->
+    <bpmn:startEvent id="StartEvent_Timer" name="Timer Start (30s)">
+      <bpmn:outgoing>Flow_timer_to_presence</bpmn:outgoing>
+      <bpmn:timerEventDefinition id="TimerEventDefinition_Presence">
+        <bpmn:timeDuration xsi:type="bpmn:tFormalExpression">PT30S</bpmn:timeDuration>
+      </bpmn:timerEventDefinition>
+    </bpmn:startEvent>
+    <bpmn:sequenceFlow id="Flow_timer_to_presence" sourceRef="StartEvent_Timer" targetRef="UserTask_Presence" />
+    
+    <!-- Presence Verification User Task with Enum Radio Selection -->
+    <bpmn:userTask id="UserTask_Presence" name="Verify Presence" camunda:assignee="admin">
+      <bpmn:extensionElements>
+        <camunda:formData>
+          <camunda:formField id="isPresent" label="Are you in front of the screen?" type="enum">
+            <camunda:value id="yes" name="Yes, I am in front of the screen" />
+            <camunda:value id="no" name="No, I am not" />
+          </camunda:formField>
+        </camunda:formData>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_timer_to_presence</bpmn:incoming>
+      <bpmn:outgoing>Flow_presence_to_check</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:sequenceFlow id="Flow_presence_to_check" sourceRef="UserTask_Presence" targetRef="Gateway_IsPresent" />
+    
+    <!-- Gateway to check if user is present -->
+    <bpmn:exclusiveGateway id="Gateway_IsPresent" name="Is User Present?">
+      <bpmn:incoming>Flow_presence_to_check</bpmn:incoming>
+      <bpmn:outgoing>Flow_user_is_present</bpmn:outgoing>
+      <bpmn:outgoing>Flow_user_is_absent</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    
+    <!-- User is present: Go to Coffee selection -->
+    <bpmn:sequenceFlow id="Flow_user_is_present" name="Yes" sourceRef="Gateway_IsPresent" targetRef="UserTask_CoffeeSelection">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${isPresent == 'yes'}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    
+    <!-- User is absent: Exit process directly -->
+    <bpmn:sequenceFlow id="Flow_user_is_absent" name="No" sourceRef="Gateway_IsPresent" targetRef="EndEvent_NotPresent">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${isPresent == 'no'}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    
+    <bpmn:endEvent id="EndEvent_NotPresent" name="End (User Absent)">
+      <bpmn:incoming>Flow_user_is_absent</bpmn:incoming>
+    </bpmn:endEvent>
+    
+    <!-- Coffee Selection User Task -->
+    <bpmn:userTask id="UserTask_CoffeeSelection" name="Choose Coffee Options" camunda:assignee="admin">
+      <bpmn:extensionElements>
+        <camunda:formData>
+          <camunda:formField id="pureCoffee" label="Pure Coffee" type="boolean" defaultValue="true">
+            <camunda:validation>
+              <camunda:constraint name="readonly" />
+            </camunda:validation>
+          </camunda:formField>
+          <camunda:formField id="withMilk" label="Add Milk?" type="boolean" defaultValue="false" />
+          <camunda:formField id="moreSugar" label="Add More Sugar?" type="boolean" defaultValue="false" />
+        </camunda:formData>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_user_is_present</bpmn:incoming>
+      <bpmn:outgoing>Flow_to_split</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:sequenceFlow id="Flow_to_split" sourceRef="UserTask_CoffeeSelection" targetRef="Gateway_CoffeeOptions" />
+    
+    <!-- Inclusive Gateway Split -->
+    <bpmn:inclusiveGateway id="Gateway_CoffeeOptions" name="Coffee Options Split">
+      <bpmn:incoming>Flow_to_split</bpmn:incoming>
+      <bpmn:outgoing>Flow_pure_coffee</bpmn:outgoing>
+      <bpmn:outgoing>Flow_add_milk</bpmn:outgoing>
+      <bpmn:outgoing>Flow_add_sugar</bpmn:outgoing>
+    </bpmn:inclusiveGateway>
+    
+    <!-- Outgoing flows with conditions -->
+    <bpmn:sequenceFlow id="Flow_pure_coffee" name="Pure Coffee" sourceRef="Gateway_CoffeeOptions" targetRef="UserTask_PureCoffee">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${pureCoffee == true}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    
+    <bpmn:sequenceFlow id="Flow_add_milk" name="With Milk" sourceRef="Gateway_CoffeeOptions" targetRef="UserTask_AddMilk">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${withMilk == true}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    
+    <bpmn:sequenceFlow id="Flow_add_sugar" name="More Sugar" sourceRef="Gateway_CoffeeOptions" targetRef="UserTask_AddSugar">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${moreSugar == true}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    
+    <!-- Coffee Action Tasks -->
+    <bpmn:userTask id="UserTask_PureCoffee" name="Pour Pure Coffee" camunda:assignee="admin">
+      <bpmn:incoming>Flow_pure_coffee</bpmn:incoming>
+      <bpmn:outgoing>Flow_pure_done</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:sequenceFlow id="Flow_pure_done" sourceRef="UserTask_PureCoffee" targetRef="Gateway_MergeCoffee" />
+    
+    <bpmn:userTask id="UserTask_AddMilk" name="Add Milk to Coffee" camunda:assignee="admin">
+      <bpmn:incoming>Flow_add_milk</bpmn:incoming>
+      <bpmn:outgoing>Flow_milk_done</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:sequenceFlow id="Flow_milk_done" sourceRef="UserTask_AddMilk" targetRef="Gateway_MergeCoffee" />
+    
+    <bpmn:userTask id="UserTask_AddSugar" name="Add Extra Sugar" camunda:assignee="admin">
+      <bpmn:incoming>Flow_add_sugar</bpmn:incoming>
+      <bpmn:outgoing>Flow_sugar_done</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:sequenceFlow id="Flow_sugar_done" sourceRef="UserTask_AddSugar" targetRef="Gateway_MergeCoffee" />
+    
+    <!-- Inclusive Gateway Merge -->
+    <bpmn:inclusiveGateway id="Gateway_MergeCoffee" name="Coffee Options Merge">
+      <bpmn:incoming>Flow_pure_done</bpmn:incoming>
+      <bpmn:incoming>Flow_milk_done</bpmn:incoming>
+      <bpmn:incoming>Flow_sugar_done</bpmn:incoming>
+      <bpmn:outgoing>Flow_merge_to_log</bpmn:outgoing>
+    </bpmn:inclusiveGateway>
+    <bpmn:sequenceFlow id="Flow_merge_to_log" sourceRef="Gateway_MergeCoffee" targetRef="ServiceTask_LogCoffee" />
+
+    <!-- Log Coffee Selection Service Task -->
+    <bpmn:serviceTask id="ServiceTask_LogCoffee" name="Log Coffee Order" camunda:delegateExpression="${logCoffeeSelectionDelegate}">
+      <bpmn:incoming>Flow_merge_to_log</bpmn:incoming>
+      <bpmn:outgoing>Flow_log_to_end</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="Flow_log_to_end" sourceRef="ServiceTask_LogCoffee" targetRef="EndEvent_Presence" />
+    
+    <bpmn:endEvent id="EndEvent_Presence" name="Presence Checked">
+      <bpmn:incoming>Flow_log_to_end</bpmn:incoming>
+    </bpmn:endEvent>
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_Presence">
+    <bpmndi:BPMNPlane id="BPMNPlane_Presence" bpmnElement="Process_Presence">
+      <bpmndi:BPMNShape id="StartEvent_Timer_di" bpmnElement="StartEvent_Timer">
+        <dc:Bounds x="150" y="99" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="128" y="142" width="81" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNShape id="UserTask_Presence_di" bpmnElement="UserTask_Presence">
+        <dc:Bounds x="240" y="77" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNShape id="Gateway_IsPresent_di" bpmnElement="Gateway_IsPresent" isMarkerVisible="true">
+        <dc:Bounds x="390" y="93" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="374" y="69" width="82" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNShape id="EndEvent_NotPresent_di" bpmnElement="EndEvent_NotPresent">
+        <dc:Bounds x="397" y="230" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="372" y="273" width="88" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNShape id="UserTask_CoffeeSelection_di" bpmnElement="UserTask_CoffeeSelection">
+        <dc:Bounds x="490" y="77" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNShape id="Gateway_CoffeeOptions_di" bpmnElement="Gateway_CoffeeOptions">
+        <dc:Bounds x="640" y="93" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="628" y="150" width="75" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNShape id="UserTask_PureCoffee_di" bpmnElement="UserTask_PureCoffee">
+        <dc:Bounds x="740" y="77" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNShape id="UserTask_AddMilk_di" bpmnElement="UserTask_AddMilk">
+        <dc:Bounds x="740" y="-40" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNShape id="UserTask_AddSugar_di" bpmnElement="UserTask_AddSugar">
+        <dc:Bounds x="740" y="196" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNShape id="Gateway_MergeCoffee_di" bpmnElement="Gateway_MergeCoffee">
+        <dc:Bounds x="890" y="93" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="878" y="150" width="75" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNShape id="ServiceTask_LogCoffee_di" bpmnElement="ServiceTask_LogCoffee">
+        <dc:Bounds x="990" y="77" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNShape id="EndEvent_Presence_di" bpmnElement="EndEvent_Presence">
+        <dc:Bounds x="1150" y="100" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1142" y="143" width="52" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      
+      <!-- Edges -->
+      <bpmndi:BPMNEdge id="Flow_timer_to_presence_di" bpmnElement="Flow_timer_to_presence">
+        <di:waypoint x="186" y="117" />
+        <di:waypoint x="240" y="117" />
+      </bpmndi:BPMNEdge>
+      
+      <bpmndi:BPMNEdge id="Flow_presence_to_check_di" bpmnElement="Flow_presence_to_check">
+        <di:waypoint x="340" y="117" />
+        <di:waypoint x="390" y="117" />
+      </bpmndi:BPMNEdge>
+      
+      <bpmndi:BPMNEdge id="Flow_user_is_present_di" bpmnElement="Flow_user_is_present">
+        <di:waypoint x="440" y="117" />
+        <di:waypoint x="490" y="117" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="456" y="99" width="18" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      
+      <bpmndi:BPMNEdge id="Flow_user_is_absent_di" bpmnElement="Flow_user_is_absent">
+        <di:waypoint x="415" y="143" />
+        <di:waypoint x="415" y="230" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="423" y="184" width="15" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      
+      <bpmndi:BPMNEdge id="Flow_to_split_di" bpmnElement="Flow_to_split">
+        <di:waypoint x="590" y="117" />
+        <di:waypoint x="640" y="117" />
+      </bpmndi:BPMNEdge>
+      
+      <bpmndi:BPMNEdge id="Flow_pure_coffee_di" bpmnElement="Flow_pure_coffee">
+        <di:waypoint x="690" y="117" />
+        <di:waypoint x="740" y="117" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="691" y="99" width="58" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      
+      <bpmndi:BPMNEdge id="Flow_add_milk_di" bpmnElement="Flow_add_milk">
+        <di:waypoint x="665" y="93" />
+        <di:waypoint x="665" y="0" />
+        <di:waypoint x="740" y="0" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="681" y="-20" width="45" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      
+      <bpmndi:BPMNEdge id="Flow_add_sugar_di" bpmnElement="Flow_add_sugar">
+        <di:waypoint x="665" y="143" />
+        <di:waypoint x="665" y="236" />
+        <di:waypoint x="740" y="236" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="677" y="246" width="57" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      
+      <bpmndi:BPMNEdge id="Flow_pure_done_di" bpmnElement="Flow_pure_done">
+        <di:waypoint x="840" y="117" />
+        <di:waypoint x="890" y="117" />
+      </bpmndi:BPMNEdge>
+      
+      <bpmndi:BPMNEdge id="Flow_milk_done_di" bpmnElement="Flow_milk_done">
+        <di:waypoint x="840" y="0" />
+        <di:waypoint x="915" y="0" />
+        <di:waypoint x="915" y="93" />
+      </bpmndi:BPMNEdge>
+      
+      <bpmndi:BPMNEdge id="Flow_sugar_done_di" bpmnElement="Flow_sugar_done">
+        <di:waypoint x="840" y="236" />
+        <di:waypoint x="915" y="236" />
+        <di:waypoint x="915" y="143" />
+      </bpmndi:BPMNEdge>
+      
+      <bpmndi:BPMNEdge id="Flow_merge_to_log_di" bpmnElement="Flow_merge_to_log">
+        <di:waypoint x="940" y="117" />
+        <di:waypoint x="990" y="117" />
+      </bpmndi:BPMNEdge>
+      
+      <bpmndi:BPMNEdge id="Flow_log_to_end_di" bpmnElement="Flow_log_to_end">
+        <di:waypoint x="1090" y="117" />
+        <di:waypoint x="1150" y="117" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

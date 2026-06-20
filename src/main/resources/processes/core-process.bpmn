@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:camunda="http://camunda.org/schema/1.0/bpmn" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" id="Definitions_Core" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.48.0">
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:camunda="http://camunda.org/schema/1.0/bpmn" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" id="Definitions_Core" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.0.0">
+  
+  <!-- Define the error to be thrown by the process -->
+  <bpmn:error id="Error_InvalidMonth" name="InvalidMonthError" errorCode="INVALID_MONTH" />
+
   <bpmn:process id="Process_Core" name="Core Process" isExecutable="true" camunda:historyTimeToLive="180">
     <bpmn:startEvent id="StartEvent_Core" name="Start Core">
       <bpmn:outgoing>Flow_1</bpmn:outgoing>
@@ -9,15 +13,18 @@
       <bpmn:outgoing>Flow_service_to_gateway</bpmn:outgoing>
     </bpmn:serviceTask>
     <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_Core" targetRef="ServiceTask_1" />
+    
     <bpmn:exclusiveGateway id="Gateway_1" name="Is June or July?">
       <bpmn:incoming>Flow_service_to_gateway</bpmn:incoming>
       <bpmn:outgoing>Flow_june_july</bpmn:outgoing>
       <bpmn:outgoing>Flow_otherwise</bpmn:outgoing>
     </bpmn:exclusiveGateway>
     <bpmn:sequenceFlow id="Flow_service_to_gateway" sourceRef="ServiceTask_1" targetRef="Gateway_1" />
+    
     <bpmn:sequenceFlow id="Flow_june_july" name="Yes" sourceRef="Gateway_1" targetRef="UserTask_1">
       <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${currentMonth == 'June' or currentMonth == 'July'}</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
+    
     <bpmn:userTask id="UserTask_1" name="Approve Request" camunda:assignee="admin">
       <bpmn:extensionElements>
         <camunda:formData>
@@ -36,9 +43,11 @@
       <bpmn:incoming>Flow_june_july</bpmn:incoming>
       <bpmn:outgoing>Flow_2</bpmn:outgoing>
     </bpmn:userTask>
+    
     <bpmn:sequenceFlow id="Flow_otherwise" name="No" sourceRef="Gateway_1" targetRef="UserTask_InvalidMonth">
       <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${currentMonth != 'June' and currentMonth != 'July'}</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
+    
     <bpmn:userTask id="UserTask_InvalidMonth" name="Months are not correct" camunda:assignee="admin">
       <bpmn:extensionElements>
         <camunda:formData>
@@ -52,12 +61,16 @@
       <bpmn:incoming>Flow_otherwise</bpmn:incoming>
       <bpmn:outgoing>Flow_invalid_to_end</bpmn:outgoing>
     </bpmn:userTask>
+    
     <bpmn:endEvent id="EndEvent_1" name="End">
       <bpmn:incoming>Flow_2</bpmn:incoming>
     </bpmn:endEvent>
     <bpmn:sequenceFlow id="Flow_2" sourceRef="UserTask_1" targetRef="EndEvent_1" />
+    
+    <!-- Changed this None End Event to an Error End Event -->
     <bpmn:endEvent id="EndEvent_InvalidMonth" name="End (Invalid Month)">
       <bpmn:incoming>Flow_invalid_to_end</bpmn:incoming>
+      <bpmn:errorEventDefinition id="ErrorEventDefinition_1" errorRef="Error_InvalidMonth" />
     </bpmn:endEvent>
     <bpmn:sequenceFlow id="Flow_invalid_to_end" sourceRef="UserTask_InvalidMonth" targetRef="EndEvent_InvalidMonth" />
   </bpmn:process>
