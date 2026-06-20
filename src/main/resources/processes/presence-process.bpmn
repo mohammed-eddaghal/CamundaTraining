@@ -79,8 +79,16 @@
       <bpmn:incoming>Flow_cancelled_to_end</bpmn:incoming>
       <bpmn:outgoing>Flow_prep_to_log</bpmn:outgoing>
     </bpmn:callActivity>
-    <bpmn:sequenceFlow id="Flow_prep_to_log" sourceRef="CallActivity_CoffeePrep" targetRef="ServiceTask_LogCoffee" />
+    <bpmn:sequenceFlow id="Flow_prep_to_log" sourceRef="CallActivity_CoffeePrep" targetRef="MessageThrowEvent_OrderSent" />
     
+    <!-- Intermediate Message Throw Event calling SentMessageEventDelegate -->
+    <bpmn:intermediateThrowEvent id="MessageThrowEvent_OrderSent" name="Send Order Notification">
+      <bpmn:incoming>Flow_prep_to_log</bpmn:incoming>
+      <bpmn:outgoing>Flow_sent_to_log</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MessageEventDefinition_OrderSent" camunda:delegateExpression="${sentMessageEventDelegate}" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:sequenceFlow id="Flow_sent_to_log" sourceRef="MessageThrowEvent_OrderSent" targetRef="ServiceTask_LogCoffee" />
+
     <!-- Boundary Message Event (Interrupting) to catch 'Message_Interop' -->
     <bpmn:boundaryEvent id="BoundaryEvent_CancelCoffee" name="Cancel Coffee Prep" attachedToRef="CallActivity_CoffeePrep">
       <bpmn:outgoing>Flow_cancel_coffee</bpmn:outgoing>
@@ -102,7 +110,7 @@
     
     <!-- Log Coffee Selection Service Task -->
     <bpmn:serviceTask id="ServiceTask_LogCoffee" name="Log Coffee Order" camunda:delegateExpression="${logCoffeeSelectionDelegate}">
-      <bpmn:incoming>Flow_prep_to_log</bpmn:incoming>
+      <bpmn:incoming>Flow_sent_to_log</bpmn:incoming>
       <bpmn:outgoing>Flow_log_to_end</bpmn:outgoing>
     </bpmn:serviceTask>
     <bpmn:sequenceFlow id="Flow_log_to_end" sourceRef="ServiceTask_LogCoffee" targetRef="EndEvent_Presence" />
@@ -147,18 +155,25 @@
         <dc:Bounds x="650" y="77" width="100" height="80" />
       </bpmndi:BPMNShape>
       
+      <bpmndi:BPMNShape id="MessageThrowEvent_OrderSent_di" bpmnElement="MessageThrowEvent_OrderSent">
+        <dc:Bounds x="800" y="99" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="789" y="142" width="58" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
       <bpmndi:BPMNShape id="ServiceTask_LogCoffee_di" bpmnElement="ServiceTask_LogCoffee">
-        <dc:Bounds x="810" y="77" width="100" height="80" />
+        <dc:Bounds x="880" y="77" width="100" height="80" />
       </bpmndi:BPMNShape>
       
       <bpmndi:BPMNShape id="UserTask_CoffeeCancelled_di" bpmnElement="UserTask_CoffeeCancelled">
-        <dc:Bounds x="810" y="190" width="100" height="80" />
+        <dc:Bounds x="880" y="190" width="100" height="80" />
       </bpmndi:BPMNShape>
       
       <bpmndi:BPMNShape id="EndEvent_Presence_di" bpmnElement="EndEvent_Presence">
-        <dc:Bounds x="970" y="100" width="36" height="36" />
+        <dc:Bounds x="1030" y="100" width="36" height="36" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="962" y="143" width="52" height="27" />
+          <dc:Bounds x="1022" y="143" width="52" height="27" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
       
@@ -203,25 +218,30 @@
       
       <bpmndi:BPMNEdge id="Flow_prep_to_log_di" bpmnElement="Flow_prep_to_log">
         <di:waypoint x="750" y="117" />
-        <di:waypoint x="810" y="117" />
+        <di:waypoint x="800" y="117" />
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="Flow_sent_to_log_di" bpmnElement="Flow_sent_to_log">
+        <di:waypoint x="836" y="117" />
+        <di:waypoint x="880" y="117" />
       </bpmndi:BPMNEdge>
       
       <bpmndi:BPMNEdge id="Flow_cancel_coffee_di" bpmnElement="Flow_cancel_coffee">
         <di:waypoint x="718" y="175" />
         <di:waypoint x="718" y="230" />
-        <di:waypoint x="810" y="230" />
+        <di:waypoint x="880" y="230" />
       </bpmndi:BPMNEdge>
       
       <bpmndi:BPMNEdge id="Flow_cancelled_to_end_di" bpmnElement="Flow_cancelled_to_end">
-        <di:waypoint x="860" y="270" />
-        <di:waypoint x="860" y="310" />
+        <di:waypoint x="930" y="270" />
+        <di:waypoint x="930" y="310" />
         <di:waypoint x="680" y="310" />
         <di:waypoint x="680" y="157" />
       </bpmndi:BPMNEdge>
       
       <bpmndi:BPMNEdge id="Flow_log_to_end_di" bpmnElement="Flow_log_to_end">
-        <di:waypoint x="910" y="117" />
-        <di:waypoint x="970" y="117" />
+        <di:waypoint x="980" y="117" />
+        <di:waypoint x="1030" y="117" />
       </bpmndi:BPMNEdge>
     </bpmndi:BPMNPlane>
   </bpmndi:BPMNDiagram>

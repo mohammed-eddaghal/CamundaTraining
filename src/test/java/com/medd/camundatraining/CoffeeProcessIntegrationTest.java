@@ -27,7 +27,7 @@ class CoffeeProcessIntegrationTest {
     private CoffeeController coffeeController;
 
     @Test
-    void testFullCoffeePrepWithCancellation() {
+    void testFullCoffeePrepWithTaskMemoryAndCancellation() {
         // 1. Start the Presence Process
         ProcessInstance processInstance = runtimeService.startProcessInstanceByKey("Process_Presence");
         assertNotNull(processInstance);
@@ -59,24 +59,30 @@ class CoffeeProcessIntegrationTest {
         // Because of the inclusive split gateway, we should have 3 active user tasks in the subprocess:
         // "Pour Pure Coffee", "Add Milk to Coffee", "Add Extra Sugar"
         List<Task> subtasks = taskService.createTaskQuery()
-                .taskAssignee("admin")
+                .taskDefinitionKeyIn("UserTask_PureCoffee", "UserTask_AddMilk", "UserTask_AddSugar")
                 .list();
 
-        assertTrue(subtasks.stream().anyMatch(t -> "UserTask_PureCoffee".equals(t.getTaskDefinitionKey())));
-        assertTrue(subtasks.stream().anyMatch(t -> "UserTask_AddMilk".equals(t.getTaskDefinitionKey())));
-        assertTrue(subtasks.stream().anyMatch(t -> "UserTask_AddSugar".equals(t.getTaskDefinitionKey())));
+        assertEquals(3, subtasks.size());
+        Task pureCoffeeTask = subtasks.stream()
+                .filter(t -> "UserTask_PureCoffee".equals(t.getTaskDefinitionKey()))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("UserTask_PureCoffee not found"));
+        
+        // 5. Complete ONE of the coffee prep tasks (Pour Pure Coffee) to test the memory feature
+        taskService.complete(pureCoffeeTask.getId());
 
-        // 5. Trigger the interop message via the REST GET controller directly
-        String response = coffeeController.triggerInterop(processInstanceId);
-        assertEquals("Message 'Message_Interop' correlated successfully for instance: " + processInstanceId, response);
+        // 6. Trigger the interop message via the REST GET controller without passing processInstanceId
+        // The service will dynamically find the active subscription on the processInstanceId and correlate it
+        String response = coffeeController.triggerInterop();
+        assertTrue(response.contains("Message 'Message_Interop' correlated successfully for dedicated instance"));
 
-        // 6. Verify that the subprocess tasks are cancelled
+        // 7. Verify that the remaining subprocess tasks (Milk and Sugar) are cancelled
         long remainingSubtasksCount = taskService.createTaskQuery()
                 .taskDefinitionKeyIn("UserTask_PureCoffee", "UserTask_AddMilk", "UserTask_AddSugar")
                 .count();
         assertEquals(0, remainingSubtasksCount);
 
-        // 7. Verify that the process has moved to the "Coffee Preparation Interrupted" task
+        // 8. Verify that the process has moved to the "Coffee Preparation Interrupted" task
         Task interruptedTask = taskService.createTaskQuery()
                 .processInstanceId(processInstanceId)
                 .taskDefinitionKey("UserTask_CoffeeCancelled")
@@ -84,23 +90,27 @@ class CoffeeProcessIntegrationTest {
         assertNotNull(interruptedTask);
         assertEquals("Coffee Preparation Interrupted", interruptedTask.getName());
 
-        // 8. Complete the interrupted task to return to the subprocess
+        // 9. Complete the interrupted task to return to the subprocess
         taskService.complete(interruptedTask.getId(), Map.of("finishWork", true));
 
-        // 9. Verify that the process has returned to the Call Activity and recreated the subprocess tasks
+        // 10. Verify that the process has returned to the Call Activity
+        // and ONLY recreated the incomplete tasks (withMilk and moreSugar)
+        // while "Pour Pure Coffee" is skipped because of the memory (pureCoffeeDone == true)
         List<Task> recreatedTasks = taskService.createTaskQuery()
-                .taskAssignee("admin")
+                .taskDefinitionKeyIn("UserTask_PureCoffee", "UserTask_AddMilk", "UserTask_AddSugar")
                 .list();
-        assertTrue(recreatedTasks.stream().anyMatch(t -> "UserTask_PureCoffee".equals(t.getTaskDefinitionKey())));
+        
+        assertEquals(2, recreatedTasks.size());
+        assertFalse(recreatedTasks.stream().anyMatch(t -> "UserTask_PureCoffee".equals(t.getTaskDefinitionKey())));
         assertTrue(recreatedTasks.stream().anyMatch(t -> "UserTask_AddMilk".equals(t.getTaskDefinitionKey())));
         assertTrue(recreatedTasks.stream().anyMatch(t -> "UserTask_AddSugar".equals(t.getTaskDefinitionKey())));
 
-        // 10. Complete all coffee prep tasks to proceed to completion
+        // 11. Complete the remaining coffee prep tasks to proceed to completion
         for (Task t : recreatedTasks) {
             taskService.complete(t.getId());
         }
 
-        // 11. Assert that the process instance is now finished
+        // 12. Assert that the process instance is now finished
         long instanceCount = runtimeService.createProcessInstanceQuery()
                 .processInstanceId(processInstanceId)
                 .count();
