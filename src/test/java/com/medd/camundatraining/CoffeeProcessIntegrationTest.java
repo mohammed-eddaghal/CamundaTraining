@@ -32,6 +32,7 @@ class CoffeeProcessIntegrationTest {
         ProcessInstance processInstance = runtimeService.startProcessInstanceByKey("Process_Presence");
         assertNotNull(processInstance);
         String processInstanceId = processInstance.getId();
+        assertTrue(processInstanceId.startsWith("ORDER_"), "Process instance ID should start with ORDER_");
 
         // 2. Find and complete the "Verify Presence" task
         Task presenceTask = taskService.createTaskQuery()
@@ -39,6 +40,8 @@ class CoffeeProcessIntegrationTest {
                 .taskDefinitionKey("UserTask_Presence")
                 .singleResult();
         assertNotNull(presenceTask);
+        assertTrue(presenceTask.getId().startsWith("ORDER_"), "Task ID should start with ORDER_");
+        assertTrue(presenceTask.getId().contains("UserTask_Presence"), "Task ID should contain UserTask_Presence");
         taskService.complete(presenceTask.getId(), Map.of("isPresent", "yes"));
 
         // 3. Find and complete the "Choose Coffee Options" task
@@ -47,8 +50,6 @@ class CoffeeProcessIntegrationTest {
                 .taskDefinitionKey("UserTask_CoffeeSelection")
                 .singleResult();
         assertNotNull(coffeeSelectionTask);
-
-        // Select all three options so we activate all inclusive branches
         taskService.complete(coffeeSelectionTask.getId(), Map.of(
                 "pureCoffee", true,
                 "withMilk", true,
@@ -67,6 +68,9 @@ class CoffeeProcessIntegrationTest {
                 .filter(t -> "UserTask_PureCoffee".equals(t.getTaskDefinitionKey()))
                 .findFirst()
                 .orElseThrow(() -> new AssertionError("UserTask_PureCoffee not found"));
+
+        assertTrue(pureCoffeeTask.getId().startsWith("ORDER_"), "Subprocess Task ID should start with ORDER_");
+        assertTrue(pureCoffeeTask.getId().contains("UserTask_PureCoffee"), "Subprocess Task ID should contain UserTask_PureCoffee");
         
         // 5. Complete ONE of the coffee prep tasks (Pour Pure Coffee) to test the memory feature
         taskService.complete(pureCoffeeTask.getId());

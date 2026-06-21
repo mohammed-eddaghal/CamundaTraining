@@ -1,34 +1,26 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:camunda="http://camunda.org/schema/1.0/bpmn" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" id="Definitions_CoffeePrep" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.0.0">
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:camunda="http://camunda.org/schema/1.0/bpmn" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" id="Definitions_CoffeePrep" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.48.0">
   <bpmn:process id="Process_CoffeePrep" name="Coffee Preparation Process" isExecutable="true" camunda:historyTimeToLive="180">
     <bpmn:startEvent id="StartEvent_Prep" name="Start Prep">
       <bpmn:outgoing>Flow_to_split</bpmn:outgoing>
     </bpmn:startEvent>
     <bpmn:sequenceFlow id="Flow_to_split" sourceRef="StartEvent_Prep" targetRef="Gateway_CoffeeOptions" />
-    
-    <!-- Inclusive Gateway Split -->
     <bpmn:inclusiveGateway id="Gateway_CoffeeOptions" name="Coffee Options Split">
       <bpmn:incoming>Flow_to_split</bpmn:incoming>
       <bpmn:outgoing>Flow_pure_coffee</bpmn:outgoing>
       <bpmn:outgoing>Flow_add_milk</bpmn:outgoing>
       <bpmn:outgoing>Flow_add_sugar</bpmn:outgoing>
     </bpmn:inclusiveGateway>
-    
-    <!-- Outgoing flows with conditions including completion memory using execution.getVariable -->
     <bpmn:sequenceFlow id="Flow_pure_coffee" name="Pure Coffee" sourceRef="Gateway_CoffeeOptions" targetRef="UserTask_PureCoffee">
       <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${pureCoffee == true and execution.getVariable('pureCoffeeDone') != true}</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
-    
     <bpmn:sequenceFlow id="Flow_add_milk" name="With Milk" sourceRef="Gateway_CoffeeOptions" targetRef="UserTask_AddMilk">
       <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${withMilk == true and execution.getVariable('milkDone') != true}</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
-    
     <bpmn:sequenceFlow id="Flow_add_sugar" name="More Sugar" sourceRef="Gateway_CoffeeOptions" targetRef="UserTask_AddSugar">
       <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${moreSugar == true and execution.getVariable('sugarDone') != true}</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
-    
-    <!-- Coffee Action Tasks with Task Listeners on complete event pointing to coffeePrepTaskListener -->
-    <bpmn:userTask id="UserTask_PureCoffee" name="Pour Pure Coffee" camunda:assignee="admin">
+    <bpmn:userTask id="UserTask_PureCoffee" name="Pour Pure Coffee" camunda:asyncAfter="true" camunda:assignee="admin">
       <bpmn:extensionElements>
         <camunda:taskListener delegateExpression="${coffeePrepTaskListener}" event="complete" />
       </bpmn:extensionElements>
@@ -36,8 +28,7 @@
       <bpmn:outgoing>Flow_pure_done</bpmn:outgoing>
     </bpmn:userTask>
     <bpmn:sequenceFlow id="Flow_pure_done" sourceRef="UserTask_PureCoffee" targetRef="Gateway_MergeCoffee" />
-    
-    <bpmn:userTask id="UserTask_AddMilk" name="Add Milk to Coffee" camunda:assignee="admin">
+    <bpmn:userTask id="UserTask_AddMilk" name="Add Milk to Coffee" camunda:asyncAfter="true" camunda:assignee="admin">
       <bpmn:extensionElements>
         <camunda:taskListener delegateExpression="${coffeePrepTaskListener}" event="complete" />
       </bpmn:extensionElements>
@@ -45,8 +36,7 @@
       <bpmn:outgoing>Flow_milk_done</bpmn:outgoing>
     </bpmn:userTask>
     <bpmn:sequenceFlow id="Flow_milk_done" sourceRef="UserTask_AddMilk" targetRef="Gateway_MergeCoffee" />
-    
-    <bpmn:userTask id="UserTask_AddSugar" name="Add Extra Sugar" camunda:assignee="admin">
+    <bpmn:userTask id="UserTask_AddSugar" name="Add Extra Sugar" camunda:asyncAfter="true" camunda:assignee="admin">
       <bpmn:extensionElements>
         <camunda:taskListener delegateExpression="${coffeePrepTaskListener}" event="complete" />
       </bpmn:extensionElements>
@@ -54,15 +44,12 @@
       <bpmn:outgoing>Flow_sugar_done</bpmn:outgoing>
     </bpmn:userTask>
     <bpmn:sequenceFlow id="Flow_sugar_done" sourceRef="UserTask_AddSugar" targetRef="Gateway_MergeCoffee" />
-    
-    <!-- Inclusive Gateway Merge -->
     <bpmn:inclusiveGateway id="Gateway_MergeCoffee" name="Coffee Options Merge">
       <bpmn:incoming>Flow_pure_done</bpmn:incoming>
       <bpmn:incoming>Flow_milk_done</bpmn:incoming>
       <bpmn:incoming>Flow_sugar_done</bpmn:incoming>
       <bpmn:outgoing>Flow_merge_to_end</bpmn:outgoing>
     </bpmn:inclusiveGateway>
-    
     <bpmn:endEvent id="EndEvent_Prep" name="Prep Finished">
       <bpmn:incoming>Flow_merge_to_end</bpmn:incoming>
     </bpmn:endEvent>
@@ -71,97 +58,82 @@
   <bpmndi:BPMNDiagram id="BPMNDiagram_Prep">
     <bpmndi:BPMNPlane id="BPMNPlane_Prep" bpmnElement="Process_CoffeePrep">
       <bpmndi:BPMNShape id="StartEvent_Prep_di" bpmnElement="StartEvent_Prep">
-        <dc:Bounds x="179" y="99" width="36" height="36" />
+        <dc:Bounds x="179" y="219" width="36" height="36" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="173" y="142" width="50" height="14" />
+          <dc:Bounds x="173" y="262" width="50" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
-      
       <bpmndi:BPMNShape id="Gateway_CoffeeOptions_di" bpmnElement="Gateway_CoffeeOptions">
-        <dc:Bounds x="270" y="93" width="50" height="50" />
+        <dc:Bounds x="270" y="213" width="50" height="50" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="258" y="150" width="75" height="27" />
+          <dc:Bounds x="259" y="270" width="74" height="27" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
-      
       <bpmndi:BPMNShape id="UserTask_PureCoffee_di" bpmnElement="UserTask_PureCoffee">
-        <dc:Bounds x="370" y="77" width="100" height="80" />
+        <dc:Bounds x="370" y="197" width="100" height="80" />
       </bpmndi:BPMNShape>
-      
       <bpmndi:BPMNShape id="UserTask_AddMilk_di" bpmnElement="UserTask_AddMilk">
-        <dc:Bounds x="370" y="-40" width="100" height="80" />
+        <dc:Bounds x="370" y="80" width="100" height="80" />
       </bpmndi:BPMNShape>
-      
       <bpmndi:BPMNShape id="UserTask_AddSugar_di" bpmnElement="UserTask_AddSugar">
-        <dc:Bounds x="370" y="196" width="100" height="80" />
+        <dc:Bounds x="370" y="316" width="100" height="80" />
       </bpmndi:BPMNShape>
-      
       <bpmndi:BPMNShape id="Gateway_MergeCoffee_di" bpmnElement="Gateway_MergeCoffee">
-        <dc:Bounds x="520" y="93" width="50" height="50" />
+        <dc:Bounds x="520" y="213" width="50" height="50" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="508" y="150" width="75" height="27" />
+          <dc:Bounds x="509" y="270" width="74" height="27" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
-      
       <bpmndi:BPMNShape id="EndEvent_Prep_di" bpmnElement="EndEvent_Prep">
-        <dc:Bounds x="620" y="99" width="36" height="36" />
+        <dc:Bounds x="620" y="219" width="36" height="36" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="605" y="142" width="67" height="14" />
+          <dc:Bounds x="605" y="262" width="68" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
-      
-      <!-- Edges -->
       <bpmndi:BPMNEdge id="Flow_to_split_di" bpmnElement="Flow_to_split">
-        <di:waypoint x="215" y="117" />
-        <di:waypoint x="270" y="117" />
+        <di:waypoint x="215" y="237" />
+        <di:waypoint x="270" y="237" />
       </bpmndi:BPMNEdge>
-      
       <bpmndi:BPMNEdge id="Flow_pure_coffee_di" bpmnElement="Flow_pure_coffee">
-        <di:waypoint x="320" y="117" />
-        <di:waypoint x="370" y="117" />
+        <di:waypoint x="320" y="237" />
+        <di:waypoint x="370" y="237" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="321" y="99" width="58" height="14" />
+          <dc:Bounds x="321" y="219" width="59" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNEdge>
-      
       <bpmndi:BPMNEdge id="Flow_add_milk_di" bpmnElement="Flow_add_milk">
-        <di:waypoint x="295" y="93" />
-        <di:waypoint x="295" y="0" />
-        <di:waypoint x="370" y="0" />
+        <di:waypoint x="295" y="213" />
+        <di:waypoint x="295" y="120" />
+        <di:waypoint x="370" y="120" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="311" y="-20" width="45" height="14" />
+          <dc:Bounds x="311" y="100" width="45" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNEdge>
-      
       <bpmndi:BPMNEdge id="Flow_add_sugar_di" bpmnElement="Flow_add_sugar">
-        <di:waypoint x="295" y="143" />
-        <di:waypoint x="295" y="236" />
-        <di:waypoint x="370" y="236" />
+        <di:waypoint x="295" y="263" />
+        <di:waypoint x="295" y="356" />
+        <di:waypoint x="370" y="356" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="307" y="246" width="57" height="14" />
+          <dc:Bounds x="307" y="366" width="58" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNEdge>
-      
       <bpmndi:BPMNEdge id="Flow_pure_done_di" bpmnElement="Flow_pure_done">
-        <di:waypoint x="470" y="117" />
-        <di:waypoint x="520" y="117" />
+        <di:waypoint x="470" y="237" />
+        <di:waypoint x="520" y="237" />
       </bpmndi:BPMNEdge>
-      
       <bpmndi:BPMNEdge id="Flow_milk_done_di" bpmnElement="Flow_milk_done">
-        <di:waypoint x="470" y="0" />
-        <di:waypoint x="545" y="0" />
-        <di:waypoint x="545" y="93" />
+        <di:waypoint x="470" y="120" />
+        <di:waypoint x="545" y="120" />
+        <di:waypoint x="545" y="213" />
       </bpmndi:BPMNEdge>
-      
       <bpmndi:BPMNEdge id="Flow_sugar_done_di" bpmnElement="Flow_sugar_done">
-        <di:waypoint x="470" y="236" />
-        <di:waypoint x="545" y="236" />
-        <di:waypoint x="545" y="143" />
+        <di:waypoint x="470" y="356" />
+        <di:waypoint x="545" y="356" />
+        <di:waypoint x="545" y="263" />
       </bpmndi:BPMNEdge>
-      
       <bpmndi:BPMNEdge id="Flow_merge_to_end_di" bpmnElement="Flow_merge_to_end">
-        <di:waypoint x="570" y="117" />
-        <di:waypoint x="620" y="117" />
+        <di:waypoint x="570" y="237" />
+        <di:waypoint x="620" y="237" />
       </bpmndi:BPMNEdge>
     </bpmndi:BPMNPlane>
   </bpmndi:BPMNDiagram>
