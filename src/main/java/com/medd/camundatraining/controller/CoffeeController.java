@@ -37,4 +37,15 @@ public class CoffeeController {
         log.info("📢 GET endpoint called: Coffee order message event has been sent!");
         return "Notification logged successfully!";
     }
+
+    /**
+     * GET endpoint to start a new instance of the "Simple Process" (Process_Simple).
+     *
+     * @return Confirmation message with the started instance ID.
+     */
+    @GetMapping("/api/start-simple-process")
+    public String startSimpleProcess() {
+        log.info("📞 Received REST API request to start 'Process_Simple'.");
+        return coffeeInteropService.startSimpleProcess();
+    }
 }

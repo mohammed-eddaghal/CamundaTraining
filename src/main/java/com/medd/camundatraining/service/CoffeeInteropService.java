@@ -53,4 +53,21 @@ public class CoffeeInteropService {
             return "Failed to correlate message for instance " + processInstanceId + ": " + e.getMessage();
         }
     }
+
+    /**
+     * Starts a new process instance of the "Simple Process" (Process_Simple).
+     *
+     * @return Confirmation message with the started instance ID.
+     */
+    public String startSimpleProcess() {
+        log.info("🚀 Starting new instance of 'Process_Simple' via interop service.");
+        try {
+            var processInstance = runtimeService.startProcessInstanceByKey("Process_Simple");
+            log.info("✅ Started 'Process_Simple' instance: {}", processInstance.getId());
+            return "Process 'Process_Simple' started successfully! Instance ID: " + processInstance.getId();
+        } catch (Exception e) {
+            log.error("❌ Failed to start 'Process_Simple': {}", e.getMessage());
+            return "Failed to start process 'Process_Simple': " + e.getMessage();
+        }
+    }
 }

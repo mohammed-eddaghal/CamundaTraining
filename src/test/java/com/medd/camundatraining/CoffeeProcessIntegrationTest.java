@@ -116,4 +116,23 @@ class CoffeeProcessIntegrationTest {
                 .count();
         assertEquals(0, instanceCount);
     }
+
+    @Test
+    void testStartSimpleProcess() {
+        // Start simple process via controller
+        String response = coffeeController.startSimpleProcess();
+        assertTrue(response.contains("Process 'Process_Simple' started successfully!"));
+        assertTrue(response.contains("Instance ID:"));
+
+        // Extract instance ID from response
+        String[] parts = response.split("Instance ID: ");
+        String startedInstanceId = parts[1].trim();
+
+        // Verify it actually exists in runtime
+        ProcessInstance pi = runtimeService.createProcessInstanceQuery()
+                .processInstanceId(startedInstanceId)
+                .singleResult();
+        assertNotNull(pi);
+        assertEquals("Process_Simple", pi.getProcessDefinitionKey());
+    }
 }
